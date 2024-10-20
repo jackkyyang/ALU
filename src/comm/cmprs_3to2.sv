@@ -18,7 +18,7 @@
  * Creation Date: 2024/10/20
  * Author: jackkyyang
  * Description:
- *   a fast 3-to-2 compressor.
+ *   a fast 3-to-2 compressor(CSA).
  ***************************************************************************
 */
 

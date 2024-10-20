@@ -77,7 +77,7 @@ module onehot_mux #(
 `ifdef COMM_ASSERT
     // SVA assertion to check if sel_oh is one-hot encoded
     always @(sel_oh)) begin
-        assert ($onehot0(sel_oh)) else $error("sel_oh is not one-hot encoded");
+        assert ($onehot0(sel_oh)) else $fatal("sel_oh is not one-hot encoded");
     end
 `endif // COMM_ASSERT
 
