@@ -46,40 +46,41 @@
 module onehot_mux #(
     parameter type T = logic,
     parameter integer SEL_WIDTH = 4
-)(
-    input  T                     data_i [SEL_WIDTH-1:0],
+) (
+    input  T                     data_i[SEL_WIDTH-1:0],
     input  logic [SEL_WIDTH-1:0] sel_oh,
     output T                     data_o
 );
 
-    localparam integer DATA_WIDTH = $bits(T);
+  localparam integer DATA_WIDTH = $bits(T);
 
-    logic [DATA_WIDTH-1:0] data [SEL_WIDTH-1:0];
-    logic [DATA_WIDTH-1:0] data_mux [SEL_WIDTH-1:0];
-    logic [DATA_WIDTH-1:0] data_sel [SEL_WIDTH-1:0];
+  logic [DATA_WIDTH-1:0] data[SEL_WIDTH-1:0];
+  logic [DATA_WIDTH-1:0] data_mux[SEL_WIDTH-1:0];
+  logic [DATA_WIDTH-1:0] data_sel[SEL_WIDTH-1:0];
 
-    generate
-        for (genvar i = 0; i < SEL_WIDTH; i+=1)  begin:gen_data_in
-            assign data[i] = DATA_WIDTH'(data_i[i]);
-            assign data_sel[i] = (data[i] & {DATA_WIDTH{sel_oh[i]}});
-        end
-    endgenerate
+  generate
+    for (genvar i = 0; i < SEL_WIDTH; i += 1) begin : gen_data_in
+      assign data[i] = DATA_WIDTH'(data_i[i]);
+      assign data_sel[i] = (data[i] & {DATA_WIDTH{sel_oh[i]}});
+    end
+  endgenerate
 
-    assign data_mux[0] = data_sel[0];
-    generate
-        for (genvar i = 1; i < SEL_WIDTH; i+=1)  begin:gen_mux
-            assign data_mux[i] = data_mux[i-1] | data_sel[i];
-        end
-    endgenerate
+  assign data_mux[0] = data_sel[0];
+  generate
+    for (genvar i = 1; i < SEL_WIDTH; i += 1) begin : gen_mux
+      assign data_mux[i] = data_mux[i-1] | data_sel[i];
+    end
+  endgenerate
 
-    assign data_o = T'(data_mux[SEL_WIDTH-1]);
+  assign data_o = T'(data_mux[SEL_WIDTH-1]);
 
 `ifdef COMM_ASSERT
-    // SVA assertion to check if sel_oh is one-hot encoded
-    always @(sel_oh)) begin
-        assert ($onehot0(sel_oh)) else $fatal("sel_oh is not one-hot encoded");
-    end
-`endif // COMM_ASSERT
+  // SVA assertion to check if sel_oh is one-hot encoded
+  always @(sel_oh) begin
+    assert ($onehot0(sel_oh))
+    else $fatal("sel_oh is not one-hot encoded");
+  end
+`endif  // COMM_ASSERT
 
 
 endmodule

@@ -21,12 +21,12 @@
   *   modified booth's encoder supporting both signed and unsigned number.
   * Parameter List:
   *  - WIDTH: width of the input data.
-              must be even and greater than or equal to 3
+              must be even and greater than or equal to 4
   * Input Ports:
   *  - data_i: input data in a signed or unsigned format
-  *  - mode_i: 0 for signed, 1 for unsigned
+  *  - unsigned_i: 0 for signed, 1 for unsigned
   * Output Ports:
-  *  - code_o: encoded data in radix-4 format
+  *  - enc_o: encoded data in radix-4 format
   *            the number of encode result is (WIDTH/2) + 1
   *            [2]: negative
   *            [1]: is zero
@@ -38,8 +38,8 @@ module booth_radix4 #(
     parameter integer WIDTH = 8
 ) (
     input  logic signed [WIDTH-1:0] data_i,
-    input  logic                    mode_i,            // 0 for signed, 1 for unsigned
-    output logic        [      2:0] code_o[WIDTH/2:0]  // {signed, zero, data*1 or data*2}
+    input  logic                    unsigned_i,            // 0 for signed, 1 for unsigned
+    output logic        [      2:0] enc_o     [WIDTH/2:0]  // {neg, zero, data*2 or data*1}
 );
 
   /*
@@ -68,21 +68,21 @@ module booth_radix4 #(
   */
 
 
-  localparam bit [2:0] ZERO = 3'b010;
-  localparam bit [2:0] POS_ONE = 3'b000;
-  localparam bit [2:0] POS_TWO = 3'b001;
-  localparam bit [2:0] MINUS_ONE = 3'b100;
-  localparam bit [2:0] MINUS_TWO = 3'b101;
+  localparam logic [2:0] ZERO = 3'b010;
+  localparam logic [2:0] POS_ONE = 3'b000;
+  localparam logic [2:0] POS_DOUBLE = 3'b001;
+  localparam logic [2:0] MINUS_ONE = 3'b100;
+  localparam logic [2:0] MINUS_DOUBLE = 3'b101;
 
   //encoding of last two bits
   always_comb begin : booth_lsb
     // {signed, zero, data*1 or data*2}
     case (data_i[1:0])
-      2'b00:   code[0] = ZERO;  // 0
-      2'b01:   code[0] = POS_ONE;  // 1
-      2'b10:   code[0] = MINUS_TWO;  // -2
-      2'b11:   code[0] = MINUS_ONE;  // -1
-      default: code[0] = 'x;
+      2'b00:   enc_o[0] = ZERO;  // 0
+      2'b01:   enc_o[0] = POS_ONE;  // 1
+      2'b10:   enc_o[0] = MINUS_DOUBLE;  // -2
+      2'b11:   enc_o[0] = MINUS_ONE;  // -1
+      default: enc_o[0] = 'x;
     endcase
   end
 
@@ -91,22 +91,22 @@ module booth_radix4 #(
       always_comb begin : booth_enc
         // {signed, zero, data*1 or data*2}
         case (data_i[2*i+1:2*i-1])
-          3'b000:  code[i] = ZERO;  // 0
-          3'b001:  code[i] = POS_ONE;  // 1
-          3'b010:  code[i] = POS_ONE;  // 1
-          3'b011:  code[i] = POS_TWO;  // 2
-          3'b100:  code[i] = MINUS_TWO;  // -2
-          3'b101:  code[i] = MINUS_ONE;  // -1
-          3'b110:  code[i] = MINUS_ONE;  // -1
-          3'b111:  code[i] = ZERO;  // 0
-          default: code[i] = 'x;
+          3'b000:  enc_o[i] = ZERO;  // 0
+          3'b001:  enc_o[i] = POS_ONE;  // 1
+          3'b010:  enc_o[i] = POS_ONE;  // 1
+          3'b011:  enc_o[i] = POS_DOUBLE;  // 2
+          3'b100:  enc_o[i] = MINUS_DOUBLE;  // -2
+          3'b101:  enc_o[i] = MINUS_ONE;  // -1
+          3'b110:  enc_o[i] = MINUS_ONE;  // -1
+          3'b111:  enc_o[i] = ZERO;  // 0
+          default: enc_o[i] = 'x;
         endcase
       end
     end
   endgenerate
 
-  // the unsigned number need one more code to get the correct result
-  assign code[WIDTH/2] = mode_i & data_i[WIDTH-1] ? POS_ONE : ZERO;
+  // the unsigned number need one more enc_o to get the correct result
+  assign enc_o[WIDTH/2] = unsigned_i & data_i[WIDTH-1] ? POS_ONE : ZERO;
 
 
 `ifdef COMM_ASSERT
