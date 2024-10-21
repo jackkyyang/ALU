@@ -23,23 +23,27 @@
   *  - WIDTH: width of the input data.
               must be even and greater than or equal to 4
   * Input Ports:
-  *  - data_i: input data in a signed or unsigned format
-  *  - unsigned_i: 0 for signed, 1 for unsigned
+  *  - data_i[WIDTH-1:0]:           input data in a signed or unsigned format
+  *  - unsigned_i[0]:               0 for signed, 1 for unsigned
   * Output Ports:
-  *  - enc_o: encoded data in radix-4 format
-  *            the number of encode result is (WIDTH/2) + 1
-  *            [2]: negative
-  *            [1]: is zero
-  *            [0]: sel data * 1 or data * 2
+  *  - is_zero_o[WIDTH/2:0]:        the encoding result is zero
+  *  - is_neg_double_o[WIDTH/2:0]:  the encoding result is -2 * operand
+  *  - is_neg_one_o[WIDTH/2:0]:     the encoding result is -1 * operand
+  *  - is_pos_double_o[WIDTH/2:0]:  the encoding result is 2 * operand
+  *  - is_pos_one_o[WIDTH/2:0]:     the encoding result is 1 * operand
  ***************************************************************************
 */
 
 module booth_radix4 #(
     parameter integer WIDTH = 8
 ) (
-    input  logic signed [WIDTH-1:0] data_i,
-    input  logic                    unsigned_i,            // 0 for signed, 1 for unsigned
-    output logic        [      2:0] enc_o     [WIDTH/2:0]  // {neg, zero, data*2 or data*1}
+    input  logic signed [  WIDTH-1:0] data_i,
+    input  logic                      unsigned_i,       // 0 for signed, 1 for unsigned
+    output logic        [WIDTH / 2:0] is_zero_o,
+    output logic        [WIDTH / 2:0] is_neg_double_o,
+    output logic        [WIDTH / 2:0] is_neg_one_o,
+    output logic        [WIDTH / 2:0] is_pos_double_o,
+    output logic        [WIDTH / 2:0] is_pos_one_o
 );
 
   /*
@@ -67,47 +71,41 @@ module booth_radix4 #(
   *************************************************************************************
   */
 
-
-  localparam logic [2:0] ZERO = 3'b010;
-  localparam logic [2:0] POS_ONE = 3'b000;
-  localparam logic [2:0] POS_DOUBLE = 3'b001;
-  localparam logic [2:0] MINUS_ONE = 3'b100;
-  localparam logic [2:0] MINUS_DOUBLE = 3'b101;
-
+  // 2'b00:  0
+  // 2'b01:  1
+  // 2'b10:  -2
+  // 2'b11:  -1
   //encoding of last two bits
-  always_comb begin : booth_lsb
-    // {signed, zero, data*1 or data*2}
-    case (data_i[1:0])
-      2'b00:   enc_o[0] = ZERO;  // 0
-      2'b01:   enc_o[0] = POS_ONE;  // 1
-      2'b10:   enc_o[0] = MINUS_DOUBLE;  // -2
-      2'b11:   enc_o[0] = MINUS_ONE;  // -1
-      default: enc_o[0] = 'x;
-    endcase
-  end
+  assign is_zero_o[0] = data_i[1:0] == 2'b00;
+  assign is_pos_one_o[0] = data_i[1:0] == 2'b01;
+  assign is_neg_double_o[0] = data_i[1:0] == 2'b10;
+  assign is_neg_one_o[0] = data_i[1:0] == 2'b11;
+  assign is_pos_doule[0] = 1'b0;
 
   generate
     for (genvar i = 1; i < WIDTH / 2; i += 1) begin : gen_enc_loop
-      always_comb begin : booth_enc
-        // {signed, zero, data*1 or data*2}
-        case (data_i[2*i+1:2*i-1])
-          3'b000:  enc_o[i] = ZERO;  // 0
-          3'b001:  enc_o[i] = POS_ONE;  // 1
-          3'b010:  enc_o[i] = POS_ONE;  // 1
-          3'b011:  enc_o[i] = POS_DOUBLE;  // 2
-          3'b100:  enc_o[i] = MINUS_DOUBLE;  // -2
-          3'b101:  enc_o[i] = MINUS_ONE;  // -1
-          3'b110:  enc_o[i] = MINUS_ONE;  // -1
-          3'b111:  enc_o[i] = ZERO;  // 0
-          default: enc_o[i] = 'x;
-        endcase
-      end
+      // 3'b000: 0
+      // 3'b001: 1
+      // 3'b010: 1
+      // 3'b011: 2
+      // 3'b100: -2
+      // 3'b101: -1
+      // 3'b110: -1
+      // 3'b111: 0
+      assign is_zero_o[i] = (&data_i[2*i+1:2*i-1]) | (~(|data_i[2*i+1:2*i-1]));
+      assign is_neg_double_o[i] = data_i[2*i+1] & (~(|data_i[2*i:2*i-1]));
+      assign is_neg_one_o[i] = data_i[2*i+1] & (^data_i[2*i:2*i-1]);
+      assign is_pos_doule[i] = ~data_i[2*i+1] & (&data_i[2*i:2*i-1]);
+      assign is_pos_one_o[i] = ~data_i[2*i+1] & (^data_i[2*i:2*i-1]);
     end
   endgenerate
 
-  // the unsigned number need one more enc_o to get the correct result
-  assign enc_o[WIDTH/2] = unsigned_i & data_i[WIDTH-1] ? POS_ONE : ZERO;
-
+  // the unsigned number need one more code to get the correct result
+  assign is_pos_one_o[WIDTH/2] = unsigned_i & data_i[WIDTH-1];
+  assign is_zero_o[WIDTH/2] = ~is_pos_one_o[WIDTH/2];
+  assign is_neg_double_o[WIDTH/2] = 1'b0;
+  assign is_neg_one_o[WIDTH/2] = 1'b0;
+  assign is_pos_doule[WIDTH/2] = 1'b0;
 
 `ifdef COMM_ASSERT
   // SVA assertion to check if sel_oh is one-hot encoded
