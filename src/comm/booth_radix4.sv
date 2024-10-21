@@ -80,7 +80,7 @@ module booth_radix4 #(
   assign is_pos_one_o[0] = data_i[1:0] == 2'b01;
   assign is_neg_double_o[0] = data_i[1:0] == 2'b10;
   assign is_neg_one_o[0] = data_i[1:0] == 2'b11;
-  assign is_pos_doule[0] = 1'b0;
+  assign is_pos_double_o[0] = 1'b0;
 
   generate
     for (genvar i = 1; i < WIDTH / 2; i += 1) begin : gen_enc_loop
@@ -95,7 +95,7 @@ module booth_radix4 #(
       assign is_zero_o[i] = (&data_i[2*i+1:2*i-1]) | (~(|data_i[2*i+1:2*i-1]));
       assign is_neg_double_o[i] = data_i[2*i+1] & (~(|data_i[2*i:2*i-1]));
       assign is_neg_one_o[i] = data_i[2*i+1] & (^data_i[2*i:2*i-1]);
-      assign is_pos_doule[i] = ~data_i[2*i+1] & (&data_i[2*i:2*i-1]);
+      assign is_pos_double_o[i] = ~data_i[2*i+1] & (&data_i[2*i:2*i-1]);
       assign is_pos_one_o[i] = ~data_i[2*i+1] & (^data_i[2*i:2*i-1]);
     end
   endgenerate
@@ -105,7 +105,7 @@ module booth_radix4 #(
   assign is_zero_o[WIDTH/2] = ~is_pos_one_o[WIDTH/2];
   assign is_neg_double_o[WIDTH/2] = 1'b0;
   assign is_neg_one_o[WIDTH/2] = 1'b0;
-  assign is_pos_doule[WIDTH/2] = 1'b0;
+  assign is_pos_double_o[WIDTH/2] = 1'b0;
 
 `ifdef COMM_ASSERT
   // SVA assertion to check if sel_oh is one-hot encoded
