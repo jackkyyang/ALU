@@ -25,7 +25,7 @@
  *   - SEL_WIDTH: width of the select signal and the number of input data
  * Input Ports:
  *   - data: input data array in a user-defined type T
- *   - sel_oh: select signal in a one-hot encoding
+ *   - sel_oh_i: select signal in a one-hot encoding
  * Output Ports:
  *   - data_o: output data in the user-defined type T
  *
@@ -35,7 +35,7 @@
  *      .SEL_WIDTH(8)
  *   ) mux (
  *       .data_i(data_i),
- *       .sel_oh(sel_oh),
+ *       .sel_oh_i(sel_oh_i),
  *       .data_o(data_o)
  *   );
  ***************************************************************************
@@ -47,8 +47,8 @@ module onehot_mux #(
     parameter type T = logic,
     parameter integer SEL_WIDTH = 4
 ) (
-    input  T                     data_i[SEL_WIDTH-1:0],
-    input  logic [SEL_WIDTH-1:0] sel_oh,
+    input  T                     data_i  [SEL_WIDTH-1:0],
+    input  logic [SEL_WIDTH-1:0] sel_oh_i,
     output T                     data_o
 );
 
@@ -61,7 +61,7 @@ module onehot_mux #(
   generate
     for (genvar i = 0; i < SEL_WIDTH; i += 1) begin : gen_data_in
       assign data[i] = DATA_WIDTH'(data_i[i]);
-      assign data_sel[i] = (data[i] & {DATA_WIDTH{sel_oh[i]}});
+      assign data_sel[i] = (data[i] & {DATA_WIDTH{sel_oh_i[i]}});
     end
   endgenerate
 
@@ -75,10 +75,10 @@ module onehot_mux #(
   assign data_o = T'(data_mux[SEL_WIDTH-1]);
 
 `ifdef COMM_ASSERT
-  // SVA assertion to check if sel_oh is one-hot encoded
-  always @(sel_oh) begin
-    assert ($onehot0(sel_oh))
-    else $fatal("sel_oh is not one-hot encoded");
+  // SVA assertion to check if sel_oh_i is one-hot encoded
+  always @(sel_oh_i) begin
+    assert ($onehot0(sel_oh_i))
+    else $fatal("sel_oh_i is not one-hot encoded");
   end
 `endif  // COMM_ASSERT
 

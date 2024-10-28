@@ -24,12 +24,14 @@
 
 
 module cmprs_3to2 (
-    input  logic [2:0] data,  // 3-bit data
-    output logic       cout,  // carry out
-    output logic       sum    // sum
+    input  logic a,     // input a
+    input  logic b,     // input b
+    input  logic c,     // input c
+    output logic cout,  // carry out
+    output logic sum    // sum
 );
 
-  assign sum  = (^data);
-  assign cout = (data[0] & data[1]) | (data[1] & data[2]) | (data[0] & data[2]);
+  assign sum  = a ^ b ^ c;
+  assign cout = (a & b) | (b & c) | (a & c);
 
 endmodule

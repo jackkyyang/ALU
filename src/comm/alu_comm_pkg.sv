@@ -14,33 +14,20 @@
    limitations under the License.
 
  ***************************************************************************
- * File Name: cmprs_4to2.sv
- * Creation Date: 2024/10/20
- * Author: jackkyyang
- * Description:
- *   a fast 4-to-2 compressor.
+  * File Name: alu_comm_pkg.sv
+  * Creation Date: 2024/10/27
+  * Author: jackkyyang
+  * Description:
+  *   common functions and types for libs of ALU
  ***************************************************************************
 */
 
-module cmprs_4to2 (
-    input  logic cin,     // carry in
-    input  logic a,       // input a
-    input  logic b,       // input b
-    input  logic c,       // input c
-    input  logic d,       // input d
-    output logic cout_a,  // carry out
-    output logic cout_b,  // carry out
-    output logic sum      // sum
-);
+package alu_comm_pkg;
 
-  wire xor_ab = a ^ b;
-  wire xor_cd = c ^ d;
+  function automatic integer calc_pp_num(input integer WIDTH);
+    if (WIDTH % 2 == 0) return WIDTH / 2;
+    else return WIDTH / 2 + 1;
 
-  wire xor_abcd = (xor_ab ^ xor_cd);
+  endfunction
 
-  assign sum = xor_abcd ^ cin;
-  assign cout_a = (xor_abcd & cin) | ((~xor_abcd) & d);
-  assign cout_b = (a & b) | (b & c) | (a & c);
-
-
-endmodule
+endpackage
