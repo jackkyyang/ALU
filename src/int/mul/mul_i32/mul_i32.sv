@@ -18,7 +18,7 @@
   * Creation Date: 2024/10/27
   * Author: jackkyyang
   * Description:
-  *   A multipler for 32-bit signed/unsgined integer.
+  *   A multiplier for 32-bit signed/unsigned integer.
  ***************************************************************************
 */
 

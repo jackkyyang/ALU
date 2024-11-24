@@ -44,7 +44,7 @@
 
 
 module onehot_mux #(
-    parameter type T = logic,
+    parameter type T = logic [1:0],
     parameter integer SEL_WIDTH = 4
 ) (
     input  T                     data_i  [SEL_WIDTH-1:0],
@@ -55,6 +55,7 @@ module onehot_mux #(
   localparam integer DATA_WIDTH = $bits(T);
 
   logic [DATA_WIDTH-1:0] data[SEL_WIDTH-1:0];
+  /* verilator lint_off UNOPTFLAT */
   logic [DATA_WIDTH-1:0] data_mux[SEL_WIDTH-1:0];
   logic [DATA_WIDTH-1:0] data_sel[SEL_WIDTH-1:0];
 

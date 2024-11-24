@@ -23,12 +23,16 @@
 */
 
 
-module cmprs_3to2 (
-    input  logic a,     // input a
-    input  logic b,     // input b
-    input  logic c,     // input c
-    output logic cout,  // carry out
-    output logic sum    // sum
+module cmprs_3to2
+#(
+  parameter integer WIDTH = 1
+)
+(
+    input  logic [WIDTH-1:0] a,     // input a
+    input  logic [WIDTH-1:0] b,     // input b
+    input  logic [WIDTH-1:0] c,     // input c
+    output logic [WIDTH-1:0] cout,  // carry out
+    output logic [WIDTH-1:0] sum    // sum
 );
 
   assign sum  = a ^ b ^ c;

@@ -334,13 +334,21 @@ class WallaceTree:
             tmp_sum.extend(sum_remain)
             return (tmp_cout, tmp_sum)
 
-    def tree_reduce(self):
-        pass
-        # carry_list: list[list[Signal]] = []
-        # for i in range(0, self.result_width):
-        #     src_list = self.columns[i].copy()
-        #     if i > 0:
-        #         src_list.extend(self.carry_list[i - 1])
+    def tree_reduce(self, columns: list[list[Signal]], level: int):
+        if max(map(lambda x: len(x), columns)) <= 2:
+            for col in columns:
+                for sig in col:
+                    print(sig.name)
+        else:
+            carry_list = []
+            sum_list = []
+            for i, col in enumerate(columns):
+                carry, sum_o = self.column_add(col, i, level, 0)
+                carry_list.append(carry)
+                sum_list.append(sum_o)
+            self.tree_reduce()
+            # print(carry_list)
+            # print(sum_list)
 
 
 if __name__ == "__main__":

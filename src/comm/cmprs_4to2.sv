@@ -18,25 +18,30 @@
  * Creation Date: 2024/10/20
  * Author: jackkyyang
  * Description:
- *   a fast 4-to-2 compressor.
+ *  a fast 4-to-2 compressor.
+ *  the weight of each output is the weight of input + 1
  ***************************************************************************
 */
 
-module cmprs_4to2 (
-    input  logic cin,     // carry in
-    input  logic a,       // input a
-    input  logic b,       // input b
-    input  logic c,       // input c
-    input  logic d,       // input d
-    output logic cout_a,  // carry out
-    output logic cout_b,  // carry out
-    output logic sum      // sum
+module cmprs_4to2
+#(
+    parameter integer WIDTH = 1
+)
+(
+    input  logic [WIDTH-1:0] cin,     // carry in
+    input  logic [WIDTH-1:0] a,       // input a
+    input  logic [WIDTH-1:0] b,       // input b
+    input  logic [WIDTH-1:0] c,       // input c
+    input  logic [WIDTH-1:0] d,       // input d
+    output logic [WIDTH-1:0] cout_a,  // carry out
+    output logic [WIDTH-1:0] cout_b,  // carry out
+    output logic [WIDTH-1:0] sum      // sum
 );
 
-  wire xor_ab = a ^ b;
-  wire xor_cd = c ^ d;
+  wire[WIDTH-1:0] xor_ab = a ^ b;
+  wire[WIDTH-1:0] xor_cd = c ^ d;
 
-  wire xor_abcd = (xor_ab ^ xor_cd);
+  wire[WIDTH-1:0] xor_abcd = (xor_ab ^ xor_cd);
 
   assign sum = xor_abcd ^ cin;
   assign cout_a = (xor_abcd & cin) | ((~xor_abcd) & d);

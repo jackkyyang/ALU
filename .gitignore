@@ -1,1 +1,4 @@
 .vscode/
+sim_build/*
+tests/__pycache__/*
+tests/build*

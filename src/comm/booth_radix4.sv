@@ -25,24 +25,18 @@
   * Input Ports:
   *  - data_sign_ext_i[WIDTH-1:0]:  input data in a signed format
   * Output Ports:
-  *  - is_neg_2x_o[WIDTH/2:0]:  the encoding result is -2 * operand
-  *  - is_neg_1x_o[WIDTH/2:0]:  the encoding result is -1 * operand
-  *  - is_pos_2x_o[WIDTH/2:0]:  the encoding result is 2 * operand
-  *  - is_pos_1x_o[WIDTH/2:0]:  the encoding result is 1 * operand
+  *  - pp_sel_o[PP_NUM-1:0][3:0]:  partial product selection
+  *  - neg_c_o[PP_NUM-1:0][1:0]:   negation compensation
  ***************************************************************************
 */
 
 module booth_radix4
-  import alu_comm_pkg::*;
 #(
-    parameter  integer WIDTH  = 8,
-    localparam integer PP_NUM = calc_pp_num(WIDTH)
+    parameter integer WIDTH  = 8,
+    parameter integer PP_NUM = 4
 ) (
     input  logic signed [ WIDTH-1:0] data_sign_ext_i,
-    output logic        [PP_NUM-1:0] is_neg_2x_o,
-    output logic        [PP_NUM-1:0] is_neg_1x_o,
-    output logic        [PP_NUM-1:0] is_pos_2x_o,
-    output logic        [PP_NUM-1:0] is_pos_1x_o,
+    output logic [3:0]               pp_sel_o [PP_NUM-1:0],
     output logic        [       1:0] neg_c_o        [PP_NUM-1:0]
 );
 
@@ -60,18 +54,23 @@ module booth_radix4
   *************************************************************************************
   */
 
-
-  wire [WIDTH:0] data_ext = {data_sign_ext_i[WIDTH-1], data_sign_ext_i};
-
   // 2'b00:  0
   // 2'b01:  1
   // 2'b10:  -2
   // 2'b11:  -1
   //encoding of last two bits
-  assign is_neg_2x_o[0] = data_sign_ext_i[1:0] == 2'b10;
-  assign is_neg_1x_o[0] = data_sign_ext_i[1:0] == 2'b11;
-  assign is_pos_2x_o[0] = 1'b0;
-  assign is_pos_1x_o[0] = data_sign_ext_i[1:0] == 2'b01;
+
+  logic        [PP_NUM-1:0] is_neg_2x;
+  logic        [PP_NUM-1:0] is_neg_1x;
+  logic        [PP_NUM-1:0] is_pos_2x;
+  logic        [PP_NUM-1:0] is_pos_1x;
+
+  assign is_neg_2x[0] = data_sign_ext_i[1:0] == 2'b10;
+  assign is_neg_1x[0] = data_sign_ext_i[1:0] == 2'b11;
+  assign is_pos_2x[0] = 1'b0;
+  assign is_pos_1x[0] = data_sign_ext_i[1:0] == 2'b01;
+
+
 
   generate
     for (genvar i = 1; i < PP_NUM; i += 1) begin : gen_enc_loop
@@ -83,16 +82,23 @@ module booth_radix4
       // 3'b101: -1
       // 3'b110: -1
       // 3'b111: 0
-      assign is_neg_2x_o[i] = data_ext[2*i+1] & (~(|data_ext[2*i:2*i-1]));
-      assign is_neg_1x_o[i] = data_ext[2*i+1] & (^data_ext[2*i:2*i-1]);
-      assign is_pos_2x_o[i] = ~data_ext[2*i+1] & (&data_ext[2*i:2*i-1]);
-      assign is_pos_1x_o[i] = ~data_ext[2*i+1] & (^data_ext[2*i:2*i-1]);
+      assign is_neg_2x[i] = data_sign_ext_i[2*i+1] & (~(|data_sign_ext_i[2*i:2*i-1]));
+      assign is_neg_1x[i] = data_sign_ext_i[2*i+1] & (^data_sign_ext_i[2*i:2*i-1]);
+      assign is_pos_2x[i] = ~data_sign_ext_i[2*i+1] & (&data_sign_ext_i[2*i:2*i-1]);
+      assign is_pos_1x[i] = ~data_sign_ext_i[2*i+1] & (^data_sign_ext_i[2*i:2*i-1]);
     end
   endgenerate
 
   generate
-    for (genvar i = 0; i < PP_NUM; i += i) begin : gen_neg_c
-      assign neg_c_o[i] = ({2{is_neg_2x_o[i]}} & 2'b10) | ({2{is_neg_1x_o[i]}} & 2'b01);
+    for (genvar i = 0; i < PP_NUM; i += 1) begin : gen_neg_c
+      assign pp_sel_o[i] = {
+          is_neg_2x[i],
+          is_neg_1x[i],
+          is_pos_2x[i],
+          is_pos_1x[i]
+      };
+
+      assign neg_c_o[i] = ({2{is_neg_2x[i]}} & 2'b10) | ({2{is_neg_1x[i]}} & 2'b01);
     end
   endgenerate
 
@@ -100,7 +106,7 @@ module booth_radix4
   // SVA assertion to check if sel_oh is one-hot encoded
   initial begin
     #0;
-    assert (WIDTH >= 4)
+    assert (WIDTH %2 == 0)
     else $fatal("WIDTH of booth encoder must be greater than or equal to 4");
   end
 `endif  // COMM_ASSERT

@@ -23,11 +23,15 @@
 */
 
 
-module cmprs_2to1 (
-    input  logic a,     // input a
-    input  logic b,     // input b
-    output logic cout,  // carry out
-    output logic sum    // sum
+module cmprs_2to1
+#(
+  parameter integer WIDTH = 1
+)
+(
+    input  logic [WIDTH-1:0] a,     // input a
+    input  logic [WIDTH-1:0] b,     // input b
+    output logic [WIDTH-1:0] cout,  // carry out
+    output logic [WIDTH-1:0] sum    // sum
 );
 
   assign sum  = a ^ b;
