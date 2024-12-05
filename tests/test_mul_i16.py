@@ -195,8 +195,7 @@ async def mul_i16_max(dut):
 async def mul_i16_unsigned_random(dut):
     """multiple test: random unsigned values"""
 
-    seed = cocotb.RANDOM_SEED
-    random.seed(seed)
+    # random.seed(cocotb.RANDOM_SEED)
     a = random.randint(0, 2**16 - 1)
     b = random.randint(0, 2**16 - 1)
 

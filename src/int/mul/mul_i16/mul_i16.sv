@@ -52,7 +52,6 @@ module mul_i16 #(
   logic [EXT_WIDTH-1:0] a_pp_src    [3:0];
   logic [EXT_WIDTH-1:0] a_pp        [PP_NUM-1:0];
   logic [C_WIDTH:0]     a_pp_ext    [PP_NUM-1:0];
-  logic [C_WIDTH-1:0]   a_pp_x    [PP_NUM-1:0];
   logic [1:0]           neg_c       [PP_NUM-1:0];
   logic [3:0]           pp_sel      [PP_NUM-1:0];
 
@@ -81,7 +80,6 @@ module mul_i16 #(
           .data_o  (a_pp[i])
       );
 
-      assign a_pp_x[i] = a_pp_ext[i][C_WIDTH-1:0];
     end
   endgenerate
 
@@ -127,40 +125,117 @@ module mul_i16 #(
                               };
 
 //======================================
-// 8-to-1 compress tree
+// 9-to-1 compress tree
 //======================================
 
-logic [C_WIDTH+3:0] cmprs_sum_o;
+// L1 compressor
+logic [25:1] l1_0_cout [1:0];
+logic [24:0] l1_0_sum ;
+cmprs_4to2 #(
+    .WIDTH(25)
+) u_l1_0 (
+    .cin(25'd0),
+    .a(a_pp_ext[0][24:0]),
+    .b(a_pp_ext[1][24:0]),
+    .c(a_pp_ext[2][24:0]),
+    .d(a_pp_ext[3][24:0]),
+    .cout_a(l1_0_cout[0][25:1]),
+    .cout_b(l1_0_cout[1][25:1]),
+    .sum(l1_0_sum[24:0])
+);
 
-cmprs_tree_8to1
-#(
-    .WIDTH   (C_WIDTH),
-    .FLOP_EN (FLOP_EN )
-)
-u_cmprs_tree_8to1(
-    .clk_i      (clk_i      ),
-    .rst_n_i    (rst_n_i    ),
-    .data_vld_i (data_vld_i ),
-    .pp_i       (a_pp_x[7:0]),
-    .data_vld_o (data_vld_o ),
-    .sum_o      (cmprs_sum_o      )
+logic [33:7] l1_1_cout [1:0];
+logic [32:6] l1_1_sum ;
+
+cmprs_4to2 #(
+    .WIDTH(27)
+) u_l1_1 (
+    .cin(27'd0),
+    .a(a_pp_ext[4][32:6]),
+    .b(a_pp_ext[5][32:6]),
+    .c(a_pp_ext[6][32:6]),
+    .d(a_pp_ext[7][32:6]),
+    .cout_a(l1_1_cout[0][33:7]),
+    .cout_b(l1_1_cout[1][33:7]),
+    .sum(l1_1_sum[32:6])
+);
+
+// L2 compressor
+logic [26:2] l2_0_cout;
+logic [25:1] l2_0_sum ;
+cmprs_3to2 #(
+    .WIDTH(25)
+) u_l2_0 (
+    .a(l1_0_cout[0][25:1]),
+    .b(l1_0_cout[1][25:1]),
+    .c({1'b0,l1_0_sum[24:1]}),
+    .cout(l2_0_cout[26:2]), // the carry out of l2 3to2
+    .sum(l2_0_sum[25:1])
+);
+
+logic [33:7] l2_1_cout;
+logic [32:6] l2_1_sum ;
+cmprs_3to2 #(
+    .WIDTH(27)
+) u_l2_1 (
+    .a({l1_1_cout[0][32:7],1'b0}),
+    .b({l1_1_cout[1][32:7],1'b0}),
+    .c(l1_1_sum[32:6]),
+    .cout(l2_1_cout[33:7]), // the carry out of l2 3to2
+    .sum(l2_1_sum[32:6])
+);
+
+// L3 compressor
+logic [33:3] l3_0_cout [1:0];
+logic [32:2] l3_0_sum ;
+cmprs_4to2 #(
+    .WIDTH(31)
+) u_l3 (
+    .cin({a_pp_ext[8][32:6],4'd0}),
+    .a({6'd0,l2_0_cout[26:2]}),
+    .b({7'd0,l2_0_sum[25:2]}),
+    .c({l2_1_cout[32:7],5'd0}),
+    .d({l2_1_sum[32:6],4'd0}),
+    .cout_a(l3_0_cout[0][33:3]),
+    .cout_b(l3_0_cout[1][33:3]),
+    .sum(l3_0_sum[32:2])
+);
+
+// L4 compressor
+logic [33:4] l4_cout;
+logic [32:3] l4_sum;
+cmprs_3to2 #(
+    .WIDTH(30)
+) u_l4 (
+    .a(l3_0_cout[0][32:3]),
+    .b(l3_0_cout[1][32:3]),
+    .c(l3_0_sum[32:3]),
+    .cout(l4_cout[33:4]), // the carry out of l2 3to2
+    .sum(l4_sum[32:3])
 );
 
 generate
   if (FLOP_EN) begin:gen_flop
-    logic [C_WIDTH-1:0] pp_8_ff;
+    logic [31:4] l4_sum_ff;
+    logic [31:4] l4_cout_ff;
+    logic [3:0]  sum_low_bits_ff;
 
     always_ff @( clk_i ) begin
       if (data_vld_i) begin
-        pp_8_ff <= a_pp_ext[8][C_WIDTH-1:0];
+        l4_sum_ff <= l4_sum[31:4];
+        l4_cout_ff <= l4_cout[31:4];
+        sum_low_bits_ff <= {l4_sum[4],l3_0_sum[2],l2_0_sum[1],l1_0_sum[0]};
       end
     end
 
-    assign c_o = pp_8_ff[C_WIDTH-1:0] + cmprs_sum_o[C_WIDTH-1:0];
+    wire [31:4] final_add = l4_sum_ff + l4_cout_ff;
+    assign c_o = {final_add,sum_low_bits_ff};
   end
   else begin:gen_no_flop
-    assign c_o = a_pp_ext[8][C_WIDTH-1:0] + cmprs_sum_o[C_WIDTH-1:0];
+    wire [31:4] final_add = l4_sum[31:4] + l4_cout[31:4];
+    assign c_o = {final_add,l4_sum[3],l3_0_sum[2],l2_0_sum[1],l1_0_sum[0]};
   end
 endgenerate
+
 
 endmodule
