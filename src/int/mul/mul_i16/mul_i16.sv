@@ -56,8 +56,8 @@ module mul_i16 #(
   logic [3:0]           pp_sel      [PP_NUM-1:0];
 
 
-  assign a_ext    = is_signed_i ? {a_i[WIDTH], a_i[WIDTH], a_i[WIDTH-1:0]} : {2'b0, a_i};
-  assign b_ext    = is_signed_i ? {b_i[WIDTH], b_i[WIDTH], b_i[WIDTH-1:0]} : {2'b0, b_i};
+  assign a_ext    = is_signed_i ? {a_i[WIDTH-1], a_i[WIDTH-1], a_i[WIDTH-1:0]} : {2'b0, a_i};
+  assign b_ext    = is_signed_i ? {b_i[WIDTH-1], b_i[WIDTH-1], b_i[WIDTH-1:0]} : {2'b0, b_i};
 
   assign a_neg_1x = ~a_ext;
   assign a_neg_2x = {~a_ext[EXT_WIDTH-2:0],1'b0};
@@ -220,7 +220,7 @@ generate
     logic [31:4] l4_cout_ff;
     logic [3:0]  sum_low_bits_ff;
 
-    always_ff @( clk_i ) begin
+    always_ff @( posedge clk_i ) begin
       if (data_vld_i) begin
         l4_sum_ff <= l4_sum[31:4];
         l4_cout_ff <= l4_cout[31:4];
@@ -230,10 +230,18 @@ generate
 
     wire [31:4] final_add = l4_sum_ff + l4_cout_ff;
     assign c_o = {final_add,sum_low_bits_ff};
+    always_ff @( posedge clk_i or negedge rst_n_i) begin
+      if (!rst_n_i) begin
+        data_vld_o <= 1'b0;
+      end else begin
+        data_vld_o <= data_vld_i;
+      end
+    end
   end
   else begin:gen_no_flop
     wire [31:4] final_add = l4_sum[31:4] + l4_cout[31:4];
     assign c_o = {final_add,l4_sum[3],l3_0_sum[2],l2_0_sum[1],l1_0_sum[0]};
+    assign data_vld_o = data_vld_i;
   end
 endgenerate
 

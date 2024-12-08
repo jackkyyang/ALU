@@ -41,6 +41,7 @@ async def mul_i16_0x0(dut):
     await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
     dut.data_vld_i.value = 1
     test_multiplier(dut, a, b)
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
     dut.data_vld_i.value = 0
     await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
 
@@ -63,6 +64,7 @@ async def mul_i16_0x1(dut):
     await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
     dut.data_vld_i.value = 1
     test_multiplier(dut, a, b)
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
     dut.data_vld_i.value = 0
     await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
 
@@ -87,6 +89,7 @@ async def mul_i16_1x0(dut):
     dut._log.info(f"b is {b}")
     dut.data_vld_i.value = 1
     test_multiplier(dut, a, b)
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
     dut.data_vld_i.value = 0
     await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
 
@@ -111,6 +114,7 @@ async def mul_i16_1x1(dut):
     dut._log.info(f"b is {b}")
     dut.data_vld_i.value = 1
     test_multiplier(dut, a, b)
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
     dut.data_vld_i.value = 0
     await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
 
@@ -135,6 +139,7 @@ async def mul_i16_1x2(dut):
     dut._log.info(f"b is {b}")
     dut.data_vld_i.value = 1
     test_multiplier(dut, a, b)
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
     dut.data_vld_i.value = 0
     await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
 
@@ -159,6 +164,7 @@ async def mul_i16_2x1(dut):
     dut._log.info(f"a is {a}")
     dut._log.info(f"b is {b}")
     test_multiplier(dut, a, b)
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
     dut.data_vld_i.value = 0
     await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
 
@@ -183,6 +189,7 @@ async def mul_i16_max(dut):
     dut._log.info(f"b is {b}")
     dut.data_vld_i.value = 1
     test_multiplier(dut, a, b)
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
     dut.data_vld_i.value = 0
     await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
 
@@ -196,24 +203,142 @@ async def mul_i16_unsigned_random(dut):
     """multiple test: random unsigned values"""
 
     # random.seed(cocotb.RANDOM_SEED)
-    a = random.randint(0, 2**16 - 1)
-    b = random.randint(0, 2**16 - 1)
-
     cocotb.start_soon(Clock(dut.clk_i, 1, units="ns").start())
     await RisingEdge(dut.clk_i)  # wait for rising edge/"posedge"
     await init_dut(dut)
     await reset_dut(dut)
 
-    for i in range(100):
+    for _ in range(100):
+        a = random.randint(0, 2**16 - 1)
+        b = random.randint(0, 2**16 - 1)
         await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
         dut._log.info(f"a is {a}")
         dut._log.info(f"b is {b}")
         dut.data_vld_i.value = 1
         test_multiplier(dut, a, b)
+        await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
         dut.data_vld_i.value = 0
         await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
 
         dut._log.info("data_vld_o is %s", dut.data_vld_o.value)
         dut._log.info("c_o is %d", dut.c_o.value)
         assert dut.c_o.value == (a * b), f"c_o is not {a*b}!"
+        await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
+
+
+@cocotb.test()  # type: ignore
+async def mul_i16_signed_1x1(dut):
+    """multiple test: 2x1"""
+
+    a = 1
+    b = 1
+
+    cocotb.start_soon(Clock(dut.clk_i, 1, units="ns").start())
+    await RisingEdge(dut.clk_i)  # wait for rising edge/"posedge"
+    await init_dut(dut)
+    await reset_dut(dut)
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
+    dut.data_vld_i.value = 1
+    dut._log.info(f"a is {a}")
+    dut._log.info(f"b is {b}")
+    test_multiplier(dut, a, b, True)
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
+    dut.data_vld_i.value = 0
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
+
+    dut._log.info("data_vld_o is %s", dut.data_vld_o.value)
+    dut._log.info("c_o is %s", dut.c_o.value)
+    assert dut.c_o.value == (a * b), f"c_o is not {a*b}!"
+
+
+@cocotb.test()  # type: ignore
+async def mul_i16_signed_m1x1(dut):
+    """multiple test: 2x1"""
+
+    a = -1
+    b = 1
+
+    cocotb.start_soon(Clock(dut.clk_i, 1, units="ns").start())
+    await RisingEdge(dut.clk_i)  # wait for rising edge/"posedge"
+    await init_dut(dut)
+    await reset_dut(dut)
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
+    dut.data_vld_i.value = 1
+    dut._log.info(f"a is {a}")
+    dut._log.info(f"b is {b}")
+    test_multiplier(dut, a, b, True)
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
+    dut.data_vld_i.value = 0
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
+
+    dut._log.info("data_vld_o is %s", dut.data_vld_o.value)
+    dut_result = dut.c_o.value.signed_integer
+    dut._log.info("c_o is %d", dut_result)
+    golden_result = a * b
+    assert (
+        dut_result == golden_result
+    ), f"c_o:{dut_result} is not {golden_result}!"
+
+
+@cocotb.test()  # type: ignore
+async def mul_i16_signed_1xm1(dut):
+    """multiple test: 2x1"""
+
+    a = 1
+    b = -1
+
+    cocotb.start_soon(Clock(dut.clk_i, 1, units="ns").start())
+    await RisingEdge(dut.clk_i)  # wait for rising edge/"posedge"
+    await init_dut(dut)
+    await reset_dut(dut)
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
+    dut.data_vld_i.value = 1
+    dut._log.info(f"a is {a}")
+    dut._log.info(f"b is {b}")
+    test_multiplier(dut, a, b, True)
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
+    dut.data_vld_i.value = 0
+    await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
+
+    dut._log.info("data_vld_o is %s", dut.data_vld_o.value)
+    dut_result = dut.c_o.value.signed_integer
+    dut._log.info("c_o is %d", dut_result)
+    golden_result = a * b
+    assert (
+        dut_result == golden_result
+    ), f"c_o:{dut_result} is not {golden_result}!"
+
+
+@cocotb.test()  # type: ignore
+async def mul_i16_signed_random(dut):
+    """multiple test: random unsigned values"""
+
+    # random.seed(cocotb.RANDOM_SEED)
+
+    cocotb.start_soon(Clock(dut.clk_i, 1, units="ns").start())
+    await RisingEdge(dut.clk_i)  # wait for rising edge/"posedge"
+    await init_dut(dut)
+    await reset_dut(dut)
+
+    for _ in range(100):
+        a = random.randint(-(2**15), 2**15 - 1)
+        b = random.randint(-(2**15), 2**15 - 1)
+        has_signed = a < 0 or b < 0
+
+        await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
+        dut._log.info(f"a is {a}")
+        dut._log.info(f"b is {b}")
+        dut.data_vld_i.value = 1
+        test_multiplier(dut, a, b, has_signed)
+        await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
+        dut.data_vld_i.value = 0
+        await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
+
+        dut._log.info("data_vld_o is %s", dut.data_vld_o.value)
+        if has_signed:
+            dut_result = dut.c_o.value.signed_integer
+        else:
+            dut_result = dut.c_o.value.integer
+        dut._log.info("c_o is %d", dut_result)
+        assert dut_result == (a * b), f"c_o is not {a*b}!"
         await FallingEdge(dut.clk_i)  # wait for falling edge/"negedge"
